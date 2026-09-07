@@ -1021,9 +1021,13 @@ vim.keymap.set({ "n", "t" }, "cvs", function()
 	end
 end, { noremap = true, silent = true })
 
--- Hotkey to refresh terminal view by dummy tmux resize
-vim.keymap.set({ "n", "t" }, "<F5>", function()
-	vim.fn.system("tmux resize-pane -U 1 && tmux resize-pane -D 1")
+-- Hotkey to refresh terminal view by dummy pane resize (tmux, or herdr once migrated)
+vim.keymap.set({ "n", "t" }, "cvz", function()
+	if vim.env.HERDR_PANE_ID then
+		vim.fn.system("herdr pane resize --direction up --amount 0.05 --current && herdr pane resize --direction down --amount 0.05 --current")
+	else
+		vim.fn.system("tmux resize-pane -U 1 && tmux resize-pane -D 1")
+	end
 end, { noremap = true, silent = true, desc = "Refresh terminal view" })
 
 -- Associate justfile.local with justfile syntax
