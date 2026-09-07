@@ -309,6 +309,38 @@ local opts         = {
 
 vim.g.rustaceanvim = opts;
 
+-- Toggle whether rust-analyzer checks/diagnoses test code (#[cfg(test)], #[test]),
+-- by flipping rust-analyzer.check.allTargets on the live client(s), no restart needed.
+--
+-- Note: nvim's built-in `workspace/configuration` pull handler serves config
+-- from the client's `settings` field (see vim.lsp.client), which is distinct
+-- from `client.config.settings`. rustaceanvim's own `set_config` API updates
+-- the right field and re-sends workspace/didChangeConfiguration to trigger a
+-- re-pull, so we use that instead of poking the client object ourselves.
+local rust_check_all_targets = true
+
+local function set_rust_check_all_targets(value)
+  rust_check_all_targets = value
+  local rust_analyzer = require('rustaceanvim.rust_analyzer')
+  local clients = rust_analyzer.get_active_rustaceanvim_clients(nil)
+  if #clients == 0 then
+    vim.notify("rust-analyzer is not running", vim.log.levels.WARN)
+    return
+  end
+  for _, client in ipairs(clients) do
+    ---@diagnostic disable-next-line: inject-field
+    client.settings = vim.tbl_deep_extend('force', client.settings or {}, {
+      ["rust-analyzer"] = { check = { allTargets = value } },
+    })
+    client:notify('workspace/didChangeConfiguration', { settings = client.settings })
+  end
+  vim.notify("rust-analyzer: checking test code " .. (value and "enabled" or "disabled"))
+end
+
+vim.api.nvim_create_user_command("RustToggleTestChecks", function()
+  set_rust_check_all_targets(not rust_check_all_targets)
+end, { desc = "Toggle whether rust-analyzer checks/diagnoses test code" })
+
 -- luasnip setup
 local luasnip      = require 'luasnip'
 -- nvim-cmp setup

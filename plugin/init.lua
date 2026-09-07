@@ -1021,14 +1021,81 @@ vim.keymap.set({ "n", "t" }, "cvs", function()
 	end
 end, { noremap = true, silent = true })
 
--- Hotkey to refresh terminal view by dummy pane resize (tmux, or herdr once migrated)
+-- Hotkey to refresh terminal view. Under herdr, a dummy pane resize alone
+-- isn't reliable: it changes herdr's own layout, but there's no guarantee
+-- it delivers a SIGWINCH to Neovim's process in time to force a repaint (tmux's
+-- resize-pane does this reliably, which is why the tmux branch works without it).
+-- So force Neovim's own full screen redraw directly (same as <C-l>/:redraw!),
+-- which fixes stale terminal-buffer rendering regardless of what herdr does.
 vim.keymap.set({ "n", "t" }, "cvz", function()
 	if vim.env.HERDR_PANE_ID then
 		vim.fn.system("herdr pane resize --direction up --amount 0.05 --current && herdr pane resize --direction down --amount 0.05 --current")
 	else
 		vim.fn.system("tmux resize-pane -U 1 && tmux resize-pane -D 1")
 	end
+	vim.cmd("redraw!")
 end, { noremap = true, silent = true, desc = "Refresh terminal view" })
+
+-- Make :terminal buffers spawned inside this nvim pane trackable as a herdr
+-- agent (herdr has no built-in nvim integration, so report state manually
+-- via `herdr pane report-agent`, the same mechanism the built-in claude/
+-- codex/etc. hooks use). Only active when nvim itself is running inside a
+-- herdr-managed pane.
+local herdr_agent_source = "custom:nvim-terminal"
+local herdr_agent_name = "nvim-terminal"
+local herdr_open_terminals = 0
+
+local function herdr_agent_available()
+	return vim.env.HERDR_ENV == "1" and vim.env.HERDR_PANE_ID ~= nil and vim.fn.executable("herdr") == 1
+end
+
+local function herdr_report_agent(state)
+	if not herdr_agent_available() then return end
+	-- The positional PANE_ID must come immediately after the subcommand;
+	-- despite --help's usage synopsis listing it last, herdr's parser
+	-- rejects it there ("unknown option: <pane_id>").
+	vim.fn.jobstart({
+		"herdr", "pane", "report-agent", vim.env.HERDR_PANE_ID,
+		"--source", herdr_agent_source,
+		"--agent", herdr_agent_name,
+		"--state", state,
+	}, { detach = true })
+end
+
+local function herdr_release_agent()
+	if not herdr_agent_available() then return end
+	vim.fn.jobstart({
+		"herdr", "pane", "release-agent", vim.env.HERDR_PANE_ID,
+		"--source", herdr_agent_source,
+		"--agent", herdr_agent_name,
+	}, { detach = true })
+end
+
+vim.api.nvim_create_autocmd("TermOpen", {
+	callback = function()
+		herdr_open_terminals = herdr_open_terminals + 1
+		herdr_report_agent("working")
+	end,
+})
+
+vim.api.nvim_create_autocmd("TermClose", {
+	callback = function()
+		herdr_open_terminals = math.max(0, herdr_open_terminals - 1)
+		if herdr_open_terminals == 0 then
+			-- Report idle (not release!) so herdr sees the working->idle
+			-- transition it needs to fire the "done" notification/sound.
+			-- Releasing here instead just erases the agent silently.
+			herdr_report_agent("idle")
+		end
+	end,
+})
+
+-- Release the agent only when nvim itself exits, not when the terminal
+-- count hits zero, so the idle->done transition above has a chance to
+-- register before the agent disappears from herdr's list.
+vim.api.nvim_create_autocmd("VimLeavePre", {
+	callback = herdr_release_agent,
+})
 
 -- Associate justfile.local with justfile syntax
 vim.filetype.add({ filename = { ["justfile.local"] = "just" } })
