@@ -14,17 +14,39 @@ vim.api.nvim_create_autocmd('FileType', {
   end
 })
 
-require('mason').setup()
-require('mason-lspconfig').setup {
-  automatic_enable = false,
-  ensure_installed = { 'lua_ls', 'taplo', 'yamlls', 'html', 'pyright', 'ts_ls', 'just', 'asm_lsp', 'buf_ls', 'golangci_lint_ls', 'emmet_language_server', 'harper_ls' }
+-- gopls is owned by go.nvim (see setup.lua). rust-analyzer is owned by rustaceanvim.
+-- clangd / digestif / sqlls are enabled if present but not auto-installed.
+local servers = {
+  'lua_ls', 'taplo', 'yamlls', 'html', 'pyright', 'ts_ls', 'just',
+  'asm_lsp', 'buf_ls', 'golangci_lint_ls', 'emmet_language_server', 'harper_ls',
+  'clangd', 'digestif', 'sqlls',
 }
 
--- Enable some language servers with the additional completion capabilities offered by nvim-cmp
-local servers = { 'clangd', 'pyright', 'ts_ls', 'lua_ls',
-  'yamlls', 'digestif', 'taplo', 'buf_ls', 'sqlls', 'gopls', 'golangci_lint_ls',
-  'html', 'just',
-  'asm_lsp', 'emmet_language_server', 'harper_ls'
+local mason_skip = {
+  clangd = true,
+  digestif = true,
+  sqlls = true,
+}
+
+local ensure_installed = {}
+for _, name in ipairs(servers) do
+  if not mason_skip[name] then
+    table.insert(ensure_installed, name)
+  end
+end
+
+require('mason').setup({
+  ui = {
+    icons = {
+      package_installed = "✓",
+      package_pending = "➜",
+      package_uninstalled = "✗"
+    }
+  }
+})
+require('mason-lspconfig').setup {
+  automatic_enable = false,
+  ensure_installed = ensure_installed,
 }
 
 local is_first_delete = true
@@ -46,18 +68,7 @@ local function on_attach(client, buffer)
 end
 
 for _, lsp in ipairs(servers) do
-  if lsp == 'omnisharp' then
-    local config = {
-      handlers = {
-        ["textDocument/definition"] = require('omnisharp_extended').definition_handler,
-        ["textDocument/typeDefinition"] = require('omnisharp_extended').type_definition_handler,
-        ["textDocument/references"] = require('omnisharp_extended').referenes_handler,
-        ["textDocument/implementation"] = require('omnisharp_extended').implementation_handler,
-      },
-    }
-    vim.lsp.config(lsp, config)
-    vim.lsp.enable({ lsp })
-  elseif lsp == 'emmet_language_server' then
+  if lsp == 'emmet_language_server' then
     local capabilities = vim.lsp.protocol.make_client_capabilities()
     capabilities.textDocument.completion.completionItem.snippetSupport = true
 
@@ -103,79 +114,6 @@ for _, lsp in ipairs(servers) do
     }
 
     vim.lsp.config(lsp, config)
-    vim.lsp.enable({ lsp })
-  elseif lsp == 'ink-ls' then
-    local config = {
-      cmd = { 'ink-lsp-server' },
-      filetypes = { 'ink' },
-      root_markers = { '.git', 'package.json', 'ink.toml' },
-    }
-
-    vim.lsp.config(lsp, config)
-    vim.lsp.enable({ lsp })
-  elseif lsp == 'codebook-lsp' then
-    local config = {
-      cmd = { 'codebook-lsp', 'serve' },
-      filetypes = {
-        'c',
-        'css',
-        'gitcommit',
-        'go',
-        'haskell',
-        'html',
-        'java',
-        'javascript',
-        'javascriptreact',
-        'lua',
-        'markdown',
-        'php',
-        'python',
-        'ruby',
-        'rust',
-        'toml',
-        'text',
-        'typescript',
-        'typescriptreact',
-      },
-
-      root_markers = { '.git', 'codebook.toml', '.codebook.toml' },
-    }
-
-    vim.lsp.config(lsp, config)
-    vim.lsp.enable({ lsp })
-  elseif lsp == 'metals' then
-    local metals_config = require('metals').bare_config()
-    metals_config.on_attach = on_attach
-    metals_config.init_options.statusBarProvider = "on"
-    metals_config.settings = {
-      showImplicitArguments = true,
-      showInferredType = true,
-      superMethodLensesEnabled = true,
-      showImplicitConversionsAndClasses = true,
-      enableSemanticHighlighting = true,
-      inlayHints = true
-    }
-
-    vim.lsp.config(lsp, metals_config)
-    vim.lsp.enable({ lsp })
-  elseif lsp == 'tact' then
-    local util = require 'lspconfig.util'
-    vim.lsp.config(lsp, {
-      cmd = { 'tact-language-server', '--stdio' },
-      on_attach = on_attach,
-      filetypes = { 'tact' },
-      -- If you installed the language server via NPM, use the following command:
-      root_dir = util.root_pattern('package.json', '.git'),
-      docs = {
-        description = [[
-        Tact Language Server
-        https://github.com/tact-lang/tact-language-server
-      ]],
-        default_config = {
-          root_dir = [[root_pattern("package.json", ".git")]],
-        },
-      }
-    })
     vim.lsp.enable({ lsp })
   elseif lsp == 'yamlls' then
     vim.lsp.config(lsp, {
@@ -344,5 +282,7 @@ cmp.setup {
   sources = {
     { name = 'nvim_lsp' },
     { name = 'luasnip' },
+    { name = 'buffer' },
+    { name = 'path' },
   },
 }

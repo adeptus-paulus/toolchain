@@ -1,5 +1,3 @@
-vim.g.mapleader = ' '
-
 local opts = { noremap = true, silent = true }
 
 -- Custom filetype mappings (ensures *.stpl files are recognized as sailfish
@@ -58,20 +56,6 @@ local function show_documentation()
 	end
 end
 
-vim.keymap.set('n', '<C-F12>', require('telescope.builtin').lsp_document_symbols, {})
-vim.keymap.set('n', 'cve', require('telescope.builtin').find_files, {})
-vim.keymap.set('n', 'cvf', require('telescope.builtin').live_grep, {})
-vim.keymap.set('n', 'cvq', require('telescope.builtin').quickfix, {})
-vim.keymap.set('n', 'gr', require('telescope.builtin').lsp_references, {})
-
-vim.keymap.set('n', '<leader>ci', require('telescope.builtin').lsp_incoming_calls, {})
-vim.keymap.set('n', '<leader>co', require('telescope.builtin').lsp_outgoing_calls, {})
-
-vim.keymap.set('n', 'zR', require('ufo').openAllFolds)
-vim.keymap.set('n', 'zM', require('ufo').closeAllFolds)
-
-vim.keymap.set('n', 'c]', function() require('treesitter-context').go_to_context(vim.v.count1) end, { silent = true })
-
 local diffview_state = 0
 local diffview_history_state = 0
 
@@ -105,79 +89,6 @@ end
 
 vim.keymap.set('n', '<M-0>', diffview_toggle)
 vim.keymap.set('n', '<M-9>', diffview_history_toggle)
-
-vim.keymap.set('n', '<M-5>', function() require('dapui').toggle() end, { silent = true })
-vim.keymap.set('n', '<C-F2>', function() vim.cmd('DapTerminate') end, { silent = true })
-
-vim.keymap.set('n', '<S-F9>', function() vim.cmd('RustLsp debuggables') end, { silent = true })
-
-vim.keymap.set('n', '<C-e>', function() require('telescope').extensions.recent_files.pick() end,
-	{ noremap = true, silent = true })
-
-vim.keymap.set('n', 'cvx', ':Telescope session-lens<CR>', {})
-vim.keymap.set('n', 'cvr', function()
-	local find = vim.fn.input('Find: ')
-	if find == '' then return end
-	local replace = vim.fn.input('Replace with: ')
-	if replace == '' then return end
-	local esc_find = vim.fn.escape(find, '/')
-	local esc_replace = vim.fn.escape(replace, '/')
-	require('telescope.builtin').live_grep({
-		default_text = find,
-	})
-end, { desc = 'Search and replace across project' })
-
-vim.keymap.set({ 'n', 't' }, '<M-F12>', function()
-	local current_win = vim.api.nvim_get_current_win()
-	local current_buf = vim.api.nvim_win_get_buf(current_win)
-	local current_buftype = vim.api.nvim_buf_get_option(current_buf, 'buftype')
-	if current_buftype == 'terminal' then
-		vim.cmd('wincmd p')
-	else
-		for _, win in ipairs(vim.api.nvim_list_wins()) do
-			local buf = vim.api.nvim_win_get_buf(win)
-			if vim.api.nvim_buf_get_option(buf, 'buftype') == 'terminal' then
-				vim.api.nvim_set_current_win(win)
-				vim.cmd('startinsert')
-				return
-			end
-		end
-	end
-end, { noremap = true, silent = true })
-
-vim.keymap.set({ 'n', 't' }, '<F5>', function()
-	vim.fn.system('tmux resize-pane -D 1 && tmux resize-pane -U 1')
-end)
-
-vim.keymap.set('n', '<M-CR>', function() vim.lsp.buf.code_action() end, { silent = true })
-vim.keymap.set('v', '<M-CR>', function() vim.lsp.buf.code_action() end, { silent = true })
-
-vim.keymap.set('n', '<F4>', function()
-	local api = require('nvim-tree.api')
-	if api.tree.is_visible() then api.tree.close() else vim.cmd('DBUI') end
-end, { desc = 'Toggle DBUI / tree' })
-
-vim.keymap.set('n', '<M-1>', function()
-	local api = require('nvim-tree.api')
-	if api.tree.is_visible() then api.tree.close() else api.tree.open() end
-end, { noremap = true, silent = true })
-
-vim.keymap.set('n', '<M-F1>', function()
-	local api = require('nvim-tree.api')
-	if api.tree.is_visible() then
-		api.tree.focus()
-	else
-		api.tree.open(); api.tree.focus()
-	end
-end, { noremap = true, silent = true })
-
-vim.keymap.set('n', '<C-M-p>', [[<cmd>horizontal resize -2<cr>]])
-vim.keymap.set('n', 'cvd', [[<cmd>horizontal resize +2<cr>]])
-vim.keymap.set('n', '<C-M-[>', [[<cmd>vertical resize -5<cr>]])
-vim.keymap.set('n', '<C-M-]>', [[<cmd>vertical resize +5<cr>]])
-
-vim.keymap.set('n', '<C-Tab>', function() vim.cmd('wincmd w') end, { noremap = true, silent = true })
-vim.keymap.set('n', '<Tab>', function() vim.cmd('wincmd w') end, { noremap = true, silent = true })
 
 -- Harpoon: pin files and jump via free Alt slots
 local ok_harpoon, harpoon = pcall(require, 'harpoon')
@@ -310,11 +221,18 @@ require('render-markdown').setup({
 	},
 })
 
--- === Complex plugin configuration below ===
-
 require('go').setup()
 
-local vim = vim
+pcall(function()
+	require("elixir").setup({
+		nextls = { enable = false },
+		elixirls = { enable = true },
+		projectionist = { enable = true },
+	})
+end)
+
+-- Fallback theme before auto-dark-mode applies the OS preference.
+vim.cmd("colorscheme darcula-solid-idea")
 
 require('auto-dark-mode').setup({
 	set_dark_mode = function()
@@ -327,9 +245,7 @@ require('auto-dark-mode').setup({
 	fallback = "dark"
 })
 
-vim.cmd("colorscheme darcula-solid-idea")
-
-ts_context = require 'treesitter-context'
+local ts_context = require 'treesitter-context'
 ts_context.setup {
 	enable = true,     -- Enable this plugin (Can be enabled/disabled later via commands)
 	multiwindow = false, -- Enable multiwindow support.
@@ -346,8 +262,6 @@ ts_context.setup {
 	on_attach = nil, -- (fun(buf: integer): boolean) return false to disable attaching
 }
 
--- Comment setup moved to plugin/keymap.lua for centralized keymaps
-vim.g.mapleader = ' '
 local rainbow_delimiters = require 'rainbow-delimiters'
 
 ---@type rainbow_delimiters.config
@@ -374,10 +288,11 @@ vim.g.rainbow_delimiters = {
 		'RainbowDelimiterCyan',
 	},
 }
-vim.keymap.set("n", "<C-M-p>", [[<cmd>horizontal resize -2<cr>]]) -- make the window biger vertically
-vim.keymap.set("n", "cvd", [[<cmd>horizontal resize +2<cr>]])     -- make the window smaller vertically
-vim.keymap.set("n", "<C-M-[>", [[<cmd>vertical resize -5<cr>]])   -- make the window bigger horizontally by pressing shift and =
-vim.keymap.set("n", "<C-M-]>", [[<cmd>vertical resize +5<cr>]])   -- make the window smaller horizontally by pressing shift and -
+
+vim.keymap.set("n", "<C-M-p>", [[<cmd>horizontal resize -2<cr>]])
+vim.keymap.set("n", "cvd", [[<cmd>horizontal resize +2<cr>]])
+vim.keymap.set("n", "<C-M-[>", [[<cmd>vertical resize -5<cr>]])
+vim.keymap.set("n", "<C-M-]>", [[<cmd>vertical resize +5<cr>]])
 
 local function is_documentation_float_open()
 	for _, win in ipairs(vim.api.nvim_list_wins()) do
@@ -396,8 +311,6 @@ local function is_documentation_float_open()
 	return false, nil
 end
 
--- vim.keymap.set("n", "<TAB>", "<C-W><C-W>")
-
 -- Alternative navigation for when TAB is bound by OpenCode
 vim.keymap.set("n", "<C-Tab>", function()
 	local float_is_open = is_documentation_float_open()
@@ -411,38 +324,10 @@ vim.keymap.set("n", "<C-Tab>", function()
 			end
 		end
 	else
-		-- Check if current window is a terminal and switch to next window
-		local current_win = vim.api.nvim_get_current_win()
-		local current_buf = vim.api.nvim_win_get_buf(current_win)
-		local current_buftype = vim.api.nvim_buf_get_option(current_buf, "buftype")
-
-		if current_buftype == "terminal" then
-			-- If in terminal, switch to next window
-			vim.cmd("wincmd w")
-		else
-			-- Check if there are any terminal windows open
-			local terminal_found = false
-			for _, win in ipairs(vim.api.nvim_list_wins()) do
-				local buf = vim.api.nvim_win_get_buf(win)
-				local buftype = vim.api.nvim_buf_get_option(buf, "buftype")
-				if buftype == "terminal" then
-					terminal_found = true
-					break
-				end
-			end
-
-			if terminal_found then
-				-- If terminals exist, cycle through all windows including terminals
-				vim.cmd("wincmd w")
-			else
-				-- No terminals, just switch to next panel
-				vim.cmd("wincmd w")
-			end
-		end
+		vim.cmd("wincmd w")
 	end
 end, { noremap = true, silent = true })
 
--- Original TAB mapping (may be overridden by OpenCode)
 vim.keymap.set("n", "<Tab>", function()
 	local float_is_open = is_documentation_float_open()
 	if float_is_open then
@@ -497,54 +382,23 @@ vim.keymap.set("n", "<Tab>", function()
 	end
 end, { noremap = true, silent = true })
 
-
-
 vim.keymap.set("n", "<M-5>", function()
-		-- local widgets = require('dapui')
-		-- local sidebar = widgets.sidebar(widgets.scopes)
-		-- sidebar.open()
-		require("dapui").toggle()
-	end,
-	opts)
+	require("dapui").toggle()
+end, opts)
 
-local is_debug_enabled = false
--- vim.keymap.set("n", "<S-F9>", function()
---         is_debug_enabled = not is_debug_enabled
---         vim.cmd (":RustLsp debuggables<CR>")
--- end,
--- opts)
-vim.api.nvim_set_keymap('n', '<S-F9>', '', {
-	noremap = true,
-	silent = true,
-	callback = function()
-		-- Custom logic for debugging tests
-		vim.cmd(':RustLsp debuggables')
-		-- Additional custom logic here if needed
-	end
-})
+vim.keymap.set('n', '<S-F9>', function()
+	vim.cmd('RustLsp debuggables')
+end, { noremap = true, silent = true })
 
 vim.keymap.set("n", "<C-F2>", function()
-		is_debug_enabled = false
-		vim.cmd("DapTerminate")
-	end,
-	opts)
-
+	vim.cmd("DapTerminate")
+end, opts)
 
 require('lsp_config')
 require("nvim-autopairs").setup {}
-require('mason').setup({
-	ui = {
-		icons = {
-			package_installed = "✓",
-			package_pending = "➜",
-			package_uninstalled = "✗"
-		}
-	}
-})
 
 vim.g.loaded_netrw = 1
 vim.g.loaded_netrwPlugin = 1
-vim.opt.termguicolors = true
 local nvim_tree_attach = function(bufnr)
 	local api = require "nvim-tree.api"
 
@@ -558,10 +412,8 @@ local nvim_tree_attach = function(bufnr)
 	-- default mappings
 	api.config.mappings.default_on_attach(bufnr)
 	vim.keymap.del('n', '<Tab>', { buffer = bufnr })
-	-- custom mappings
-	--       vim.keymap.set('n', '?',     api.tree.toggle_help,                  opts('Help'))
 end
--- OR setup with some options
+
 require("nvim-tree").setup({
 	update_focused_file = {
 		enable = true
@@ -592,24 +444,16 @@ vim.keymap.set("n", "gd", function() vim.lsp.buf.definition() end, { desc = "Go 
 vim.keymap.set("n", "<F2>", function() vim.diagnostic.jump({ count = 1, float = true }) end, opts)
 vim.keymap.set("n", "<S-F2>", function() vim.diagnostic.jump({ count = -1, float = true }) end, opts)
 
+pcall(function() require("telescope").load_extension("ui-select") end)
 require("telescope").load_extension("recent_files")
 local crates = require('crates')
 
-vim.api.nvim_set_keymap("n", "<C-e>",
-	[[<cmd>lua require('telescope').extensions.recent_files.pick()<CR>]],
-	{ noremap = true, silent = true })
+vim.keymap.set("n", "<C-e>", function()
+	require('telescope').extensions.recent_files.pick()
+end, { noremap = true, silent = true })
 
 local builtin = require('telescope.builtin')
-local workspace_symbols_opt = {
-	symbols = {
-		"interface",
-		"class",
-		"struct"
-	}
-}
---builtin.lsp_workspace_symbols(workspace_symbols_opt)
 vim.keymap.set('n', '<C-F12>', builtin.lsp_document_symbols, {})
--- vim.keymap.set('n', 'cvi', builtin.lsp_workspace_symbols, {})
 vim.keymap.set('n', 'cve', builtin.find_files, {})
 vim.keymap.set('n', 'cvf', builtin.live_grep, {})
 vim.keymap.set('n', 'cvq', builtin.quickfix, {})
@@ -624,14 +468,14 @@ vim.o.foldlevel = 99   -- Using ufo provider need a large value, feel free to de
 vim.o.foldlevelstart = 99
 vim.o.foldenable = true
 
-vim.keymap.set('n', 'zR', require('ufo').openAllFolds)
-vim.keymap.set('n', 'zM', require('ufo').closeAllFolds)
-
 require('ufo').setup({
 	provider_selector = function(bufnr, filetype, buftype)
 		return { 'treesitter', 'indent' }
 	end
 })
+
+vim.keymap.set('n', 'zR', require('ufo').openAllFolds)
+vim.keymap.set('n', 'zM', require('ufo').closeAllFolds)
 
 require('dapui').setup({
 	controls = {
@@ -703,26 +547,7 @@ require('dapui').setup({
 		max_value_lines = 100
 	}
 })
---
--- vim.keymap.set("n", "<C-M-o>", function() vim.lsp.buf.format() end, { desc = "Remove unused import", })
--- vim.keymap.set(
--- 	{ "n", "o", "x" },
--- 	"w",
--- 	"<cmd>lua require('spider').motion('w')<CR>",
--- 	{ desc = "Spider-w" }
--- )
--- vim.keymap.set(
--- 	{ "n", "o", "x" },
--- 	"e",
--- 	"<cmd>lua require('spider').motion('e')<CR>",
--- 	{ desc = "Spider-e" }
--- )
--- vim.keymap.set(
--- 	{ "n", "o", "x" },
--- 	"b",
--- 	"<cmd>lua require('spider').motion('b')<CR>",
--- 	{ desc = "Spider-b" }
--- )
+
 vim.api.nvim_create_autocmd('FileType', {
 	pattern = "dts",
 	callback = function(ev)
@@ -741,12 +566,6 @@ end, { silent = true })
 require('ruscmd').setup {
 }
 
-vim.api.nvim_set_hl(0, 'LspInlayHint', {
-	fg = '#7f7f7f', -- Light gray foreground (adjust to your theme)
-	bg = 'NONE', -- Transparent background
-})
-
-
 require('gitblame').setup()
 require('plantuml').setup()
 require('crates').setup {
@@ -762,13 +581,17 @@ require('crates').setup {
 	},
 }
 
-
-
-vim.g.copilot_no_tab_map = true
-vim.g.copilot_filetypes = {
-	["*"] = true,
-	-- ["markdown"] = false,
-}
+vim.api.nvim_create_autocmd('FileType', {
+	pattern = { 'sql', 'mysql', 'plsql' },
+	callback = function()
+		vim.schedule(function()
+			local ok, cmp = pcall(require, 'cmp')
+			if ok then
+				cmp.setup.buffer({ sources = { { name = 'vim-dadbod-completion' } } })
+			end
+		end)
+	end,
+})
 
 -- We deliberately exclude "terminal" (terminals can't be properly restored;
 -- their jobs are dead after restart, and including it used to cause
@@ -791,7 +614,6 @@ end
 
 vim.keymap.set("n", "<M-CR>", code_action, opts)
 vim.keymap.set("v", "<M-CR>", code_action, opts)
-
 
 local toggle_db_view = function()
 	local api = require("nvim-tree.api")
@@ -844,7 +666,6 @@ local function focus_left_menu()
 	end
 end
 
--- vim.keymap.set("n", "<F4>", [[<cmd>DBUI<cr>]])
 vim.keymap.set("n", "<F4>", toggle_db_view, { desc = "Open DBUI" })
 
 vim.keymap.set('n', '<M-1>', toggle_left_menu, { noremap = true, silent = true })
@@ -937,8 +758,6 @@ end
 require('auto-session').setup({
 	log_level = 'warn',
 	auto_session_suppress_dirs = { '~/', '~/Downloads', '~/Documents', '/' },
-	-- post_restore_cmds = { 'NvimTreeOpen' }, -- Open NvimTree after restoring session
-	-- pre_save_cmds = { 'NvimTreeClose' }, -- Close NvimTree before saving session
 	post_restore_cmds = {
 		function()
 			on_session_restore()
@@ -955,14 +774,6 @@ require('auto-session').setup({
 	session_lens = {
 		load_on_setup = true, -- Initialize on startup (requires Telescope)
 		picker_opts = nil,
-		-- Table passed to Telescope / Snacks to configure the picker. See below for more information
-		-- mappings = {
-		--   -- Mode can be a string or a table, e.g. {"i", "n"} for both insert and normal mode
-		--   delete_session = { "i", "<C-D>" },
-		--   alternate_session = { "i", "<C-S>" },
-		--   copy_session = { "i", "<C-Y>" },
-		-- },
-
 		session_control = {
 			control_dir = vim.fn.stdpath "data" .. "/auto_session/", -- Auto session control dir, for control files, like alternating between two sessions with session-lens
 			control_filename = "session_control.json", -- File name of the session control file
@@ -971,7 +782,6 @@ require('auto-session').setup({
 })
 
 vim.keymap.set('n', 'cvx', ':Telescope session-lens<CR>', {})
-
 
 -- Function for search and replace with Telescope
 local function telescope_search_replace()
@@ -1029,7 +839,6 @@ local function telescope_search_replace()
 	})
 end
 
--- Set the keybinding for 'cvr' in normal mode
 vim.keymap.set("n", "cvr", telescope_search_replace, { desc = "Search and replace across project" })
 
 require("bigfile").setup {
@@ -1094,9 +903,6 @@ require('lualine').setup {
 	extensions = {}
 
 }
-
--- Required for `opts.events.reload`.
-vim.o.autoread = true
 
 vim.keymap.set({ "n", "t" }, "cva", function() require("grok-code").toggle() end, { desc = "Toggle Grok Build (grok)" })
 
@@ -1213,21 +1019,10 @@ require('gitsigns').setup {
 	end
 }
 
-
 -- Grok Build integration
--- Same fundamental approach you use with Claude Code:
---   We simply run the real `grok` CLI inside a Neovim terminal buffer.
--- The module below adds the same conveniences as claude-code.nvim (quick toggle,
--- per-project instances, --continue support, file reloads, and a friendly
--- "not installed yet" prompt with the official docs).
---
--- You also get a plain/raw launcher:
 --   :Grok            -> opens a vertical split on the right running grok (raw CLI reuse)
 --   :GrokCode        -> managed toggle (similar to :ClaudeCode)
 require("grok-code").setup({
-	-- refresh = {
-	-- 	enable = false
-	-- }
 	-- Defaults are already tuned for "grok".
 	-- Keymaps (toggle + send actions) are managed by the plugin.
 	-- Assign keys here instead of writing full handler functions.
@@ -1288,36 +1083,37 @@ vim.keymap.set({ 'n', 't' }, '<F5>', function()
 	vim.fn.system('tmux resize-pane -D 1 && tmux resize-pane -U 1')
 end, { desc = "Tmux dummy resize" })
 
-
-
-
-
--- vim.keymap.set({ "n", "x" }, "go",  function() return require("opencode").operator("@this ") end,        { desc = "Add range to opencode", expr = true })
--- vim.keymap.set("n",          "goo", function() return require("opencode").operator("@this ") .. "_" end, { desc = "Add line to opencode", expr = true })
---
--- vim.keymap.set("n", "<S-C-u>", function() require("opencode").command("session.half.page.up") end,   { desc = "Scroll opencode up" })
--- vim.keymap.set("n", "<S-C-d>", function() require("opencode").command("session.half.page.down") end, { desc = "Scroll opencode down" })
---
--- -- You may want these if you stick with the opinionated "<C-a>" and "<C-x>" above — otherwise consider "<leader>o…".
--- vim.keymap.set("n", "+", "<C-a>", { desc = "Increment under cursor", noremap = true })
--- vim.keymap.set("n", "-", "<C-x>", { desc = "Decrement under cursor", noremap = true })
-
 -- Treesitter: install small curated list of parsers on startup
 -- (new nvim-treesitter API - old setup block was removed)
-local ts_parsers = {
-	"bash", "c", "cpp", "go", "javascript", "json", "lua",
-	"markdown", "python", "rust", "sql", "toml", "typescript", "vim", "yaml",
-	"elixir", "heex", "eex",
+local ts_langs = {
+	{ parser = "bash",       filetype = "bash" },
+	{ parser = "c",          filetype = "c" },
+	{ parser = "cpp",        filetype = "cpp" },
+	{ parser = "go",         filetype = "go" },
+	{ parser = "javascript", filetype = "javascript" },
+	{ parser = "json",       filetype = "json" },
+	{ parser = "lua",        filetype = "lua" },
+	{ parser = "markdown",   filetype = "markdown" },
+	{ parser = "python",     filetype = "python" },
+	{ parser = "rust",       filetype = "rust" },
+	{ parser = "sql",        filetype = "sql" },
+	{ parser = "toml",       filetype = "toml" },
+	{ parser = "typescript", filetype = "typescript" },
+	{ parser = "vim",        filetype = "vim" },
+	{ parser = "yaml",       filetype = "yaml" },
+	{ parser = "elixir",     filetype = "elixir" },
+	{ parser = "heex",       filetype = "heex" },
+	{ parser = "eex",        filetype = "eelixir" },
 }
-require('nvim-treesitter').install(ts_parsers)
 
--- Filetypes that should enable treesitter highlighting.
--- Note: filetype can differ from parser name (e.g. eelixir -> eex).
-local ts_filetypes = {
-	"bash", "c", "cpp", "go", "javascript", "json", "lua",
-	"markdown", "python", "rust", "sql", "toml", "typescript", "vim", "yaml",
-	"elixir", "heex", "eelixir",
-}
+local ts_parsers = {}
+local ts_filetypes = {}
+for _, lang in ipairs(ts_langs) do
+	table.insert(ts_parsers, lang.parser)
+	table.insert(ts_filetypes, lang.filetype)
+end
+
+require('nvim-treesitter').install(ts_parsers)
 
 vim.api.nvim_create_autocmd('FileType', {
 	pattern = ts_filetypes,
