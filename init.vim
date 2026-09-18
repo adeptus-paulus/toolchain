@@ -107,7 +107,7 @@ Plug 'numToStr/Comment.nvim'
 Plug 'folke/todo-comments.nvim'
 
 " Plug 'saecki/crates.nvim'
-Plug 'paval-shlyk/crates.nvim', { 'branch': 'fix-multiline-arrays' }
+Plug 'paval-shlyk/crates.nvim', { 'branch': 'feat/add-workspace-support' }
 Plug 'https://github.com/ThePrimeagen/harpoon', { 'branch': 'harpoon2' }
 Plug 'https://github.com/MeanderingProgrammer/render-markdown.nvim'
 
