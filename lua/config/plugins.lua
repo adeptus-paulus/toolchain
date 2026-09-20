@@ -197,13 +197,5 @@ pcall(function()
   vim.g.have_nerd_font = true
 end)
 
--- pcall(function()
---   require("elixir").setup({
---     nextls = { enable = false },
---     elixirls = { enable = true },
---     projectionist = { enable = true },
---   })
--- end)
-
 M.specs = specs
 return M
