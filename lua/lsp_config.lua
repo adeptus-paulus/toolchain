@@ -143,7 +143,15 @@ for _, lsp in ipairs(servers) do
           }
         }
       },
-      on_attach = on_attach,
+      on_attach = function(client, buffer)
+        if vim.api.nvim_buf_get_name(buffer):match('/templates/') then
+          vim.schedule(function()
+            vim.lsp.buf_detach_client(buffer, client.id)
+          end)
+          return
+        end
+        on_attach(client, buffer)
+      end,
       -- capabilities = capabilities,
     })
     vim.lsp.enable({ lsp })
