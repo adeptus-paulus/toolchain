@@ -1,0 +1,37 @@
+onboarding = false
+
+[ui]
+agent_panel_sort = "priority"
+pane_outer_borders = false
+
+sidebar_start_collapsed = true
+sidebar_collapsed_mode = "hidden"
+
+hide_tab_bar_when_single_tab = true
+
+[theme]
+name = "tokyo-night"
+
+[theme.custom]
+overlay0 = "#33364d"
+
+[keys]
+prefix = "ctrl+a"
+
+toggle_sidebar = ["prefix+b", "prefix+ctrl+b"]
+
+split_vertical = "prefix+plus"
+split_horizontal = "prefix+="
+
+focus_pane_left = ["alt+left", "alt+h"]
+focus_pane_down = ["alt+down", "alt+j"]
+focus_pane_up = ["alt+up", "alt+k"]
+focus_pane_right = ["alt+right", "alt+l"]
+
+resize_pane_left = "prefix+!"
+resize_pane_right = "prefix+ctrl+]"
+resize_pane_up = "prefix+ctrl+p"
+resize_pane_down = "prefix+semicolon"
+
+previous_workspace = ["super+j"]
+next_workspace = ["super+k"]
