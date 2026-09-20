@@ -81,7 +81,7 @@ local plugins = {
   'https://github.com/mrcjkb/rustaceanvim',
   'https://github.com/ray-x/go.nvim',
   'https://github.com/ray-x/guihua.lua',
-  'https://github.com/saecki/crates.nvim',
+  { src = 'https://github.com/paval-shlyk/crates.nvim',       version = 'feat/add-workspace-support' },
   'https://github.com/elixir-tools/elixir-tools.nvim',
 
   -- DAP
@@ -98,13 +98,11 @@ local plugins = {
   -- Editing / productivity
   'https://github.com/numToStr/Comment.nvim',
   'https://github.com/windwp/nvim-autopairs',
-  'https://github.com/junegunn/vim-easy-align',
   'https://github.com/kshenoy/vim-signature',
   'https://github.com/rmagatti/auto-session',
   'https://github.com/LunarVim/bigfile.nvim',
   'https://github.com/uga-rosa/translate.nvim',
   'https://github.com/tpope/vim-sleuth',
-  'https://github.com/MunifTanjim/prettier.nvim',
   {
     src = 'https://github.com/ThePrimeagen/harpoon',
     version = 'harpoon2',
@@ -122,17 +120,10 @@ local plugins = {
   -- Other tools
   'https://github.com/f-person/auto-dark-mode.nvim',
   'https://github.com/aveplen/ruscmd.nvim',
-  -- 'https://github.com/NickvanDyke/opencode.nvim',
   'https://github.com/folke/snacks.nvim',
   'https://gitlab.com/itaranto/plantuml.nvim',
-  'https://github.com/junegunn/vim-github-dashboard',
-  -- {
-  --   src = 'https://github.com/iamcco/markdown-preview.nvim',
-  --   build = 'cd app && npx --yes yarn install',
-  -- },
   'https://github.com/MeanderingProgrammer/render-markdown.nvim',
-  { src = 'https://github.com/paval-shlyk/grok-code.nvim',    version = 'feature/send-notifications' },
-  'https://github.com/greggh/claude-code.nvim',
+  { src = 'https://github.com/paval-shlyk/grok-code.nvim', version = 'feature/send-notifications' },
   {
     src = 'https://github.com/rust-sailfish/sailfish',
     build = function(path)
@@ -144,9 +135,6 @@ local plugins = {
   },
   'https://github.com/kenn7/vim-arsync',
   'https://github.com/prabirshrestha/async.vim',
-
-  -- Misc
-  'https://github.com/kristijanhusak/vim-dadbod-completion', -- (dedup handled by vim.pack)
 }
 
 -- Normalize plugin list into vim.pack specs.
@@ -209,13 +197,13 @@ pcall(function()
   vim.g.have_nerd_font = true
 end)
 
-pcall(function()
-  require("elixir").setup({
-    nextls = { enable = false },
-    elixirls = { enable = true },
-    projectionist = { enable = true },
-  })
-end)
+-- pcall(function()
+--   require("elixir").setup({
+--     nextls = { enable = false },
+--     elixirls = { enable = true },
+--     projectionist = { enable = true },
+--   })
+-- end)
 
 M.specs = specs
 return M

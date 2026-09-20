@@ -45,8 +45,9 @@
       "src": "https://github.com/saadparwaiz1/cmp_luasnip"
     },
     "crates.nvim": {
-      "rev": "694357861ec9ebf12475ddcdd04ea45a0923c32d",
-      "src": "https://github.com/saecki/crates.nvim"
+      "rev": "2e6c2a02dc63d63fa05fb48a43cc2a37c077f105",
+      "src": "https://github.com/paval-shlyk/crates.nvim",
+      "version": "'feat/add-workspace-support'"
     },
     "darcula-solid.nvim": {
       "rev": "d950b9ca20096313c435a93e57af7815766f3d3d",
