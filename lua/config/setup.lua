@@ -6,6 +6,15 @@ vim.filetype.add({
 	extension = {
 		stpl = 'sailfish',
 	},
+	filename = {
+		['justfile.local'] = 'just',
+		['README'] = 'markdown',
+	},
+	pattern = {
+		['.*/templates/.*%.ya?ml'] = 'helm',
+		['.*/templates/.*%.tpl'] = 'helm',
+		['.*/templates/NOTES%.txt'] = 'helm',
+	},
 })
 
 require('Comment').setup {
@@ -221,6 +230,18 @@ require('render-markdown').setup({
 	},
 })
 
+local function set_render_markdown_highlights()
+	vim.api.nvim_set_hl(0, '@markup.strong', { fg = '#E5C07B', bold = true })
+	vim.api.nvim_set_hl(0, '@markup.italic', { fg = '#8AABA6', italic = true })
+end
+set_render_markdown_highlights()
+vim.api.nvim_create_autocmd('ColorScheme', { callback = set_render_markdown_highlights })
+
+vim.api.nvim_set_hl(0, 'LspInlayHint', {
+	fg = '#7f7f7f',
+	bg = 'NONE',
+})
+
 require('go').setup()
 
 pcall(function()
@@ -303,7 +324,7 @@ local function is_documentation_float_open()
 			local buf_filetype = vim.api.nvim_buf_get_option(buf, "filetype")
 
 			-- Only return true for markdown documentation windows
-			if buf_filetype == "markdown" or buf_filetype == "crates.nvim" then
+			if buf_filetype == "markdown" or buf_filetype == "crates.nvim" or vim.w[win].gitsigns_preview == "blame" then
 				return true, win
 			end
 		end
@@ -372,8 +393,8 @@ vim.keymap.set("n", "<Tab>", function()
 				local buf = vim.api.nvim_win_get_buf(next_win)
 				local buftype = vim.api.nvim_buf_get_option(buf, "buftype")
 
-				-- If not a terminal, switch to it
-				if buftype ~= "terminal" then
+				-- If not a terminal or a marked side-panel (e.g. rust-test-panel), switch to it
+				if buftype ~= "terminal" and not vim.w[next_win].rust_test_panel then
 					vim.api.nvim_set_current_win(next_win)
 					return
 				end
@@ -397,6 +418,8 @@ end, opts)
 vim.keymap.set({ "n" }, "<leader>tr", ":RustLsp run<CR>")
 vim.keymap.set({ "n" }, "<leader>tl", ":RustLsp testables<CR>")
 vim.keymap.set('n', '<C-PageUp>', ":RustLsp parentModule<CR>")
+
+require("rust-test-panel").setup({ keymap = "<leader>tt" })
 
 require('lsp_config')
 require("nvim-autopairs").setup {}
@@ -439,7 +462,8 @@ require("nvim-tree").setup({
 
 vim.keymap.set('n', 'K', show_documentation, { silent = true })
 
-vim.keymap.set("n", "<S-F6>", function() vim.lsp.buf.rename() end, opts)
+-- vim.keymap.set("n", "<S-F6>", function() vim.lsp.buf.rename() end, opts)
+vim.keymap.set("n", "cvu", function() vim.lsp.buf.rename() end, opts)
 
 vim.keymap.set("n", "<C-M-l>", function() vim.lsp.buf.format() end, { desc = "Format buffer", })
 vim.keymap.set("n", "g]", function() vim.lsp.buf.implementation() end, { desc = "Go to implementation of chosen one", })
@@ -460,7 +484,7 @@ vim.keymap.set('n', '<C-e>', function() builtin.find_files({ hidden = true }) en
 -- vim.keymap.set('n', '<C-F12>', builtin.lsp_document_symbols, {})
 vim.keymap.set('n', 'cvy', builtin.lsp_document_symbols, {})
 -- vim.keymap.set('n', 'cve', builtin.find_files, {})
-vim.keymap.set('n', 'cvf', builtin.live_grep, {})
+vim.keymap.set('n', 'cvf', function() builtin.live_grep({ additional_args = { "--hidden" } }) end, {})
 vim.keymap.set('n', 'cvq', builtin.quickfix, {})
 vim.keymap.set('n', 'cvo', crates.show_features_popup, {})
 vim.keymap.set('n', 'gr', builtin.lsp_references, {})
@@ -674,7 +698,8 @@ end
 vim.keymap.set("n", "<F4>", toggle_db_view, { desc = "Open DBUI" })
 
 vim.keymap.set('n', '<M-1>', toggle_left_menu, { noremap = true, silent = true })
-vim.keymap.set('n', '<M-F1>', focus_left_menu, { noremap = true, silent = true })
+-- vim.keymap.set('n', '<M-F1>', focus_left_menu, { noremap = true, silent = true })
+vim.keymap.set('n', 'cvm', focus_left_menu, { noremap = true, silent = true })
 
 local function grok_session_marker()
 	local dir = vim.fn.stdpath("data") .. "/grok"
@@ -909,7 +934,7 @@ require('lualine').setup {
 
 }
 
-vim.keymap.set({ "n", "t" }, "cva", function() require("grok-code").toggle() end, { desc = "Toggle Grok Build (grok)" })
+-- vim.keymap.set({ "n", "t" }, "cva", function() require("grok-code").toggle() end, { desc = "Toggle Grok Build (grok)" })
 
 local last_non_terminal_win = nil
 
@@ -1095,9 +1120,9 @@ do
 	})
 end
 
-vim.keymap.set({ 'n', 't' }, '<F5>', function()
-	vim.fn.system('tmux resize-pane -D 1 && tmux resize-pane -U 1')
-end, { desc = "Tmux dummy resize" })
+-- vim.keymap.set({ 'n', 't' }, '<F5>', function()
+-- 	vim.fn.system('tmux resize-pane -D 1 && tmux resize-pane -U 1')
+-- end, { desc = "Tmux dummy resize" })
 
 -- Treesitter: install small curated list of parsers on startup
 -- (new nvim-treesitter API - old setup block was removed)
