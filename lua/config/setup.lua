@@ -1022,16 +1022,26 @@ require('gitsigns').setup {
 -- Grok Build integration
 --   :Grok            -> opens a vertical split on the right running grok (raw CLI reuse)
 --   :GrokCode        -> managed toggle (similar to :ClaudeCode)
-require("grok-code").setup({
-	-- Defaults are already tuned for "grok".
-	-- Keymaps (toggle + send actions) are managed by the plugin.
-	-- Assign keys here instead of writing full handler functions.
-	-- keymaps = {
-	--   send_file_ref  = '<leader>a',
-	--   send_range_ref = '<leader>l',   -- visual mode
-	--   send_line_ref  = '<leader>l',   -- normal mode
-	--   select         = '<leader>s',
-	-- },
+-- require("grok-code").setup({
+-- 	-- Defaults are already tuned for "grok".
+-- 	-- Keymaps (toggle + send actions) are managed by the plugin.
+-- 	-- Assign keys here instead of writing full handler functions.
+-- 	-- keymaps = {
+-- 	--   send_file_ref  = '<leader>a',
+-- 	--   send_range_ref = '<leader>l',   -- visual mode
+-- 	--   send_line_ref  = '<leader>l',   -- normal mode
+-- 	--   select         = '<leader>s',
+-- 	-- },
+-- })
+
+-- Herdr agent send (CLI transport). Keys avoid grok-code's <leader>a / <leader>l.
+require("herdr").setup({
+	keymaps = {
+		file = "<leader>f",
+		line = "<leader>l",
+		list = "<leader>al",
+		send = "<leader>as",
+	},
 })
 
 -- Global "coding agent file sync"
