@@ -117,6 +117,21 @@ function M.agent_prompt(target, text)
   return M.run({ "agent", "prompt", target, text })
 end
 
+--- @param target string
+--- @return table|nil
+--- @return herdr.CliError|nil
+function M.agent_focus(target)
+  return M.run({ "agent", "focus", target })
+end
+
+--- @param target string
+--- @param name string
+--- @return table|nil
+--- @return herdr.CliError|nil
+function M.agent_rename(target, name)
+  return M.run({ "agent", "rename", target, name })
+end
+
 --- @param pane_id string
 --- @param text string
 --- @return table|nil

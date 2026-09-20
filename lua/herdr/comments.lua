@@ -111,19 +111,27 @@ function M.add(bufnr, item)
     end_line = line_count
   end
 
+  local function decorate(row, erow, text, extmark_id)
+    local opts = {
+      end_row = erow,
+      end_col = 0,
+      virt_lines = callout(text),
+      virt_lines_above = true,
+      sign_text = "▌",
+      sign_hl_group = "HerdrCommentSign",
+      line_hl_group = "HerdrCommentLine",
+      hl_mode = "combine",
+      invalidate = true,
+      right_gravity = false,
+    }
+    if extmark_id then
+      opts.id = extmark_id
+    end
+    return vim.api.nvim_buf_set_extmark(bufnr, M.ns, row, 0, opts)
+  end
+
   -- Primary mark: 💬 callout above the first line + ▌ rail (herdr-nvim style).
-  local mark_id = vim.api.nvim_buf_set_extmark(bufnr, M.ns, start_line - 1, 0, {
-    end_row = end_line - 1,
-    end_col = 0,
-    virt_lines = callout(item.text),
-    virt_lines_above = true,
-    sign_text = "▌",
-    sign_hl_group = "HerdrCommentSign",
-    line_hl_group = "HerdrCommentLine",
-    hl_mode = "combine",
-    invalidate = true,
-    right_gravity = false,
-  })
+  local mark_id = decorate(start_line - 1, end_line - 1, item.text)
 
   local rails = {}
   for line = start_line + 1, end_line do
@@ -150,6 +158,41 @@ function M.add(bufnr, item)
   }
   entries[#entries + 1] = rec
   return rec.uid
+end
+
+--- Replace the text of an existing comment and refresh its callout.
+--- @param item { uid?: integer, id?: integer }
+--- @param text string
+--- @return boolean
+function M.update(item, text)
+  if type(item) ~= "table" then
+    return false
+  end
+  local uid = item.uid or item.id
+  text = text or ""
+  for _, rec in ipairs(entries) do
+    if rec.uid == uid then
+      rec.text = text
+      refresh_rec(rec)
+      if vim.api.nvim_buf_is_valid(rec.bufnr) and not rec.invalid then
+        vim.api.nvim_buf_set_extmark(rec.bufnr, M.ns, rec.start_line - 1, 0, {
+          id = rec.mark_id,
+          end_row = rec.end_line - 1,
+          end_col = 0,
+          virt_lines = callout(text),
+          virt_lines_above = true,
+          sign_text = "▌",
+          sign_hl_group = "HerdrCommentSign",
+          line_hl_group = "HerdrCommentLine",
+          hl_mode = "combine",
+          invalidate = true,
+          right_gravity = false,
+        })
+      end
+      return true
+    end
+  end
+  return false
 end
 
 --- List comments. Omit bufnr (or pass nil) for every file; a bufnr filters to that buffer.
@@ -445,6 +488,19 @@ function M.open_list(bufnr, opts)
   map("dd", delete_at_cursor)
   map("x", delete_at_cursor)
   map("<Del>", delete_at_cursor)
+  map("e", function()
+    local item = current()
+    if not item then
+      return
+    end
+    vim.ui.input({ prompt = "Herdr comment: ", default = item.text }, function(text)
+      if text == nil then
+        return
+      end
+      M.update(item, text)
+      render()
+    end)
+  end)
 end
 
 return M

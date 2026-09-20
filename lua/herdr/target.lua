@@ -20,18 +20,39 @@ function M.cli_target(agent)
   return agent.pane_id
 end
 
+--- Visible name: Herdr `name`, else the pane title (the view you see in Herdr).
+--- @param agent table
+--- @return string
+function M.display_name(agent)
+  if type(agent.name) == "string" and agent.name ~= "" then
+    return agent.name
+  end
+  local title = agent.title or agent.terminal_title_stripped or agent.terminal_title
+  if type(title) == "string" then
+    title = vim.trim(title)
+    if title ~= "" then
+      return title
+    end
+  end
+  return agent.agent or agent.display_agent or agent.pane_id or "agent"
+end
+
 --- @param agent table
 --- @return string
 function M.label(agent)
-  local name = (type(agent.name) == "string" and agent.name ~= "") and agent.name or nil
-  local kind = agent.agent or agent.display_agent or "?"
+  local name = M.display_name(agent)
   local status = agent.agent_status or "unknown"
-  local pane = agent.pane_id or "?"
-  local cwd = agent.cwd or ""
-  if name then
-    return string.format("%s  %s  %s  %s  %s", name, kind, pane, status, cwd)
+  local kind = agent.agent or agent.display_agent
+  local cwd = agent.cwd or agent.foreground_cwd or ""
+  local short = cwd ~= "" and vim.fn.fnamemodify(cwd, ":~") or ""
+  local parts = { name, status }
+  if kind and kind ~= "" and not name:find(kind, 1, true) then
+    parts[#parts + 1] = kind
   end
-  return string.format("%s  %s  %s  %s", kind, pane, status, cwd)
+  if short ~= "" then
+    parts[#parts + 1] = short
+  end
+  return table.concat(parts, " · ")
 end
 
 --- @return table[]
@@ -227,16 +248,56 @@ function M.pick(callback, opts)
     return
   end
 
-  vim.ui.select(agents, {
-    prompt = "Herdr agent:",
+  local RENAME = { _rename = true }
+  local choices = vim.list_slice(agents, 1, #agents)
+  table.insert(choices, RENAME)
+
+  vim.ui.select(choices, {
+    prompt = "Send to agent:",
     format_item = function(item)
+      if item._rename then
+        return "Rename agent…"
+      end
       return M.label(item)
     end,
   }, function(choice)
-    if choice then
-      M.remember(choice)
-      vim.notify("Herdr target: " .. M.label(choice), vim.log.levels.INFO)
+    if not choice then
+      if callback then
+        callback(nil)
+      end
+      return
     end
+    if choice._rename then
+      vim.ui.select(agents, {
+        prompt = "Rename which agent?",
+        format_item = function(item)
+          return M.label(item)
+        end,
+      }, function(agent)
+        if not agent then
+          M.pick(callback, opts)
+          return
+        end
+        vim.ui.input({
+          prompt = "Agent name: ",
+          default = agent.name or "",
+        }, function(name)
+          if not name or name == "" then
+            M.pick(callback, opts)
+            return
+          end
+          local _, err = herdr().agent_rename(M.cli_target(agent), name)
+          if err then
+            vim.notify("Herdr: " .. herdr().err_message(err), vim.log.levels.ERROR)
+          else
+            vim.notify("Herdr: renamed to " .. name, vim.log.levels.INFO)
+          end
+          M.pick(callback, opts)
+        end)
+      end)
+      return
+    end
+    M.remember(choice)
     if callback then
       callback(choice)
     end

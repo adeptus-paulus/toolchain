@@ -394,6 +394,10 @@ vim.keymap.set("n", "<C-F2>", function()
 	vim.cmd("DapTerminate")
 end, opts)
 
+vim.keymap.set({ "n" }, "<leader>tr", ":RustLsp run<CR>")
+vim.keymap.set({ "n" }, "<leader>tl", ":RustLsp testables<CR>")
+vim.keymap.set('n', '<C-PageUp>', ":RustLsp parentModule<CR>")
+
 require('lsp_config')
 require("nvim-autopairs").setup {}
 
@@ -441,20 +445,21 @@ vim.keymap.set("n", "<C-M-l>", function() vim.lsp.buf.format() end, { desc = "Fo
 vim.keymap.set("n", "g]", function() vim.lsp.buf.implementation() end, { desc = "Go to implementation of chosen one", })
 vim.keymap.set("n", "gd", function() vim.lsp.buf.definition() end, { desc = "Go to definition", })
 
-vim.keymap.set("n", "<F2>", function() vim.diagnostic.jump({ count = 1, float = true }) end, opts)
-vim.keymap.set("n", "<S-F2>", function() vim.diagnostic.jump({ count = -1, float = true }) end, opts)
+-- vim.keymap.set("n", "<F2>", function() vim.diagnostic.jump({ count = 1, float = true }) end, opts)
+-- vim.keymap.set("n", "<S-F2>", function() vim.diagnostic.jump({ count = -1, float = true }) end, opts)
+
+vim.keymap.set("n", "cvn", function() vim.diagnostic.jump({ count = 1, float = true }) end, opts)
+vim.keymap.set("n", "cvp", function() vim.diagnostic.jump({ count = -1, float = true }) end, opts)
 
 pcall(function() require("telescope").load_extension("ui-select") end)
 require("telescope").load_extension("recent_files")
 local crates = require('crates')
 
-vim.keymap.set("n", "<C-e>", function()
-	require('telescope').extensions.recent_files.pick()
-end, { noremap = true, silent = true })
-
 local builtin = require('telescope.builtin')
-vim.keymap.set('n', '<C-F12>', builtin.lsp_document_symbols, {})
-vim.keymap.set('n', 'cve', builtin.find_files, {})
+vim.keymap.set('n', '<C-e>', function() builtin.find_files({ hidden = true }) end, {})
+-- vim.keymap.set('n', '<C-F12>', builtin.lsp_document_symbols, {})
+vim.keymap.set('n', 'cvy', builtin.lsp_document_symbols, {})
+-- vim.keymap.set('n', 'cve', builtin.find_files, {})
 vim.keymap.set('n', 'cvf', builtin.live_grep, {})
 vim.keymap.set('n', 'cvq', builtin.quickfix, {})
 vim.keymap.set('n', 'cvo', crates.show_features_popup, {})
@@ -908,7 +913,8 @@ vim.keymap.set({ "n", "t" }, "cva", function() require("grok-code").toggle() end
 
 local last_non_terminal_win = nil
 
-vim.keymap.set({ "n", "t" }, "<M-F12>", function()
+-- vim.keymap.set({ "n", "t" }, "<M-F12>", function()
+vim.keymap.set({ "n", "t" }, "cvs", function()
 	local current_win = vim.api.nvim_get_current_win()
 	local current_buf = vim.api.nvim_win_get_buf(current_win)
 	local current_buftype = vim.api.nvim_buf_get_option(current_buf, "buftype")

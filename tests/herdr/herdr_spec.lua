@@ -49,6 +49,9 @@ local function classify(cmd)
   if cmd[2] == "agent" and cmd[3] == "prompt" then
     return "agent_prompt"
   end
+  if cmd[2] == "agent" and cmd[3] == "focus" then
+    return "agent_focus"
+  end
   if cmd[2] == "agent" and cmd[3] == "get" then
     return "agent_get"
   end
@@ -94,6 +97,7 @@ local function install_mocks()
     },
     agent_list = json_ok({ type = "agent_list", agents = SAMPLE_AGENTS }),
     agent_prompt = json_ok({ type = "ok" }),
+    agent_focus = json_ok({ type = "ok" }),
     send_text = json_ok({ type = "ok" }),
     agent_get = json_ok({ type = "ok" }),
   }
@@ -197,6 +201,23 @@ describe("herdr.nvim", function()
     assert.equals("agent is blocked", err.message)
   end)
 
+  it("labels agents by Herdr name or pane title", function()
+    assert.equals(
+      "review · idle · grok · /tmp/proj",
+      target.label(SAMPLE_AGENTS[2])
+    )
+    assert.equals(
+      "Fix counter in main.rs · idle · grok · ~/qt-journey",
+      target.label({
+        agent = "grok",
+        agent_status = "idle",
+        cwd = vim.fn.expand("~/qt-journey"),
+        pane_id = "w1:p2",
+        terminal_title_stripped = "Fix counter in main.rs",
+      })
+    )
+  end)
+
   it("sorts named roles ahead of pane ids", function()
     local sorted = target.sort(SAMPLE_AGENTS)
     assert.equals("review", sorted[1].name)
@@ -272,33 +293,14 @@ describe("herdr.nvim", function()
     assert.equals("@src/foo.lua", last_cmd[5])
   end)
 
-  it("submit send uses agent prompt", function()
-    local ok = herd.send("Explain\n\n@src/foo.lua", { submit = true, target = "review" })
+  it("send focuses the agent view and pastes without submitting", function()
+    local ok = herd.send("Explain\n\n@src/foo.lua", { target = "review" })
     assert.is_true(ok)
-    assert.equals("agent", last_cmd[2])
-    assert.equals("prompt", last_cmd[3])
-    assert.equals("review", last_cmd[4])
+    assert.equals("pane", last_cmd[2])
+    assert.equals("send-text", last_cmd[3])
+    assert.equals("wM:p2", last_cmd[4])
     assert.equals("Explain\n\n@src/foo.lua", last_cmd[5])
-  end)
-
-  it("refuses submit when agent is blocked", function()
-    mocks.agent_list = json_ok({
-      type = "agent_list",
-      agents = {
-        {
-          name = "review",
-          agent = "grok",
-          agent_status = "blocked",
-          pane_id = "wM:p2",
-        },
-      },
-    })
-    last_cmd = nil
-    local ok = herd.send("hi", { submit = true, target = "review" })
-    assert.is_false(ok)
-    -- find() lists agents, but we must not call `agent prompt`
-    assert.equals("list", last_cmd[3])
-    assert.is_truthy(note_join():find("blocked", 1, true))
+    assert.is_truthy(note_join():find("not submitted", 1, true))
   end)
 
   it("warns and still sends when agent is working", function()
@@ -313,9 +315,9 @@ describe("herdr.nvim", function()
         },
       },
     })
-    local ok = herd.send("hi", { submit = true, target = "review" })
+    local ok = herd.send("hi", { target = "review" })
     assert.is_true(ok)
-    assert.equals("prompt", last_cmd[3])
+    assert.equals("send-text", last_cmd[3])
     assert.is_truthy(note_join():find("working", 1, true))
   end)
 
@@ -332,9 +334,9 @@ describe("herdr.nvim", function()
       fargs = { "prompt", "fix", "this" },
       range = 0,
     })
-    assert.equals("agent", last_cmd[2])
-    assert.equals("prompt", last_cmd[3])
-    assert.equals("review", last_cmd[4])
+    assert.equals("pane", last_cmd[2])
+    assert.equals("send-text", last_cmd[3])
+    assert.equals("wM:p2", last_cmd[4])
     assert.equals("fix this", last_cmd[5])
   end)
 
@@ -356,7 +358,7 @@ describe("herdr.nvim", function()
       cb(items[1])
     end
     commands.dispatch(herd, { fargs = {}, range = 0 })
-    assert.equals("prompt", last_cmd[3])
+    assert.equals("send-text", last_cmd[3])
     assert.is_truthy(last_cmd[5]:find("Explain this code", 1, true))
   end)
 
@@ -387,15 +389,16 @@ describe("herdr.nvim", function()
     local ok = herd.send("hello", { submit = true })
     assert.is_true(ok)
     assert.is_truthy(prompts_seen[1]:find("agent", 1, true))
-    assert.equals("review", last_cmd[4])
+    assert.equals("send-text", last_cmd[3])
+    assert.equals("wM:p2", last_cmd[4])
     assert.equals("hello", last_cmd[5])
   end)
 
-  it("blocked CLI error does not look like success", function()
-    mocks.agent_prompt = json_err("agent_blocked", "agent is blocked")
-    local ok = herd.send("hi", { submit = true, target = "review" })
+  it("paste error does not look like success", function()
+    mocks.send_text = json_err("error", "pane gone")
+    local ok = herd.send("hi", { target = "review" })
     assert.is_false(ok)
-    assert.is_truthy(note_join():find("blocked", 1, true))
+    assert.is_truthy(note_join():find("pane gone", 1, true))
   end)
 
   it(":Herdr file sends @file with the typed comment", function()
@@ -410,7 +413,7 @@ describe("herdr.nvim", function()
       cb("look here")
     end
     commands.dispatch(herd, { fargs = { "file" }, range = 0 })
-    assert.equals("prompt", last_cmd[3])
+    assert.equals("send-text", last_cmd[3])
     assert.equals("look here\n\n@src/foo.lua", last_cmd[5])
     context.git_root = orig
   end)
@@ -465,8 +468,8 @@ describe("herdr.nvim", function()
       cb(items[1])
     end
     commands.dispatch(herd, { fargs = { "send" }, range = 0 })
-    assert.equals("prompt", last_cmd[3])
-    assert.equals("review", last_cmd[4])
+    assert.equals("send-text", last_cmd[3])
+    assert.equals("wM:p2", last_cmd[4])
     local body = last_cmd[5]
     assert.is_truthy(body:find("@src/foo.lua:1", 1, true))
     assert.is_truthy(body:find("first", 1, true))
@@ -474,6 +477,20 @@ describe("herdr.nvim", function()
     assert.is_truthy(body:find("range note", 1, true))
     assert.equals(0, #comments.list(0))
     context.git_root = orig
+  end)
+
+  it("updates a stacked comment in place", function()
+    vim.api.nvim_buf_set_lines(0, 0, -1, false, { "one", "two" })
+    local uid = comments.add(0, { path = "src/foo.lua", start_line = 1, end_line = 1, text = "old" })
+    assert.is_true(comments.update({ uid = uid }, "new text"))
+    local items = comments.list(0)
+    assert.equals("new text", items[1].text)
+    local marks = vim.api.nvim_buf_get_extmarks(0, comments.ns, 0, -1, { details = true })
+    local shown = ""
+    for _, chunk in ipairs(marks[1][4].virt_lines[1]) do
+      shown = shown .. chunk[1]
+    end
+    assert.is_truthy(shown:find("new text", 1, true))
   end)
 
   it("deletes a single stacked comment", function()

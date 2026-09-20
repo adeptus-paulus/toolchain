@@ -32,56 +32,34 @@ local function no_file()
   vim.notify("Herdr: no current file", vim.log.levels.WARN)
 end
 
+--- Focus the agent's Herdr view and paste text. Does not submit (no Enter).
 --- @param agent table
 --- @param text string
---- @param opts { submit?: boolean }
+--- @param _opts table|nil
 --- @return boolean
-function M._send_to(agent, text, opts)
-  opts = opts or {}
-  local submit = opts.submit
-  if submit == nil then
-    submit = M.config.submit_default
+function M._send_to(agent, text, _opts)
+  local dest = target.cli_target(agent)
+  if not dest then
+    vim.notify("Herdr: agent has no name or pane id. Start one with your herd-roles script.", vim.log.levels.WARN)
+    return false
   end
-
-  if submit then
-    if agent.agent_status == "blocked" then
-      vim.notify("Herdr: agent is blocked; not submitting", vim.log.levels.WARN)
-      return false
-    end
-    if agent.agent_status == "working" then
-      vim.notify("Herdr: agent is working; sending anyway", vim.log.levels.WARN)
-    end
-    local dest = target.cli_target(agent)
-    if not dest then
-      vim.notify("Herdr: agent has no name or pane id. Start one with your herd-roles script.", vim.log.levels.WARN)
-      return false
-    end
-    local _, err = herdr.agent_prompt(dest, text)
-    if err then
-      if err.code == "agent_blocked" then
-        vim.notify("Herdr: agent is blocked; not submitting", vim.log.levels.WARN)
-      elseif err.code == "agent_not_found" then
-        vim.notify("Herdr: named agent is missing. Run your herd-roles script.", vim.log.levels.WARN)
-      else
-        vim.notify("Herdr: " .. herdr.err_message(err), vim.log.levels.ERROR)
-      end
-      return false
-    end
-    vim.notify("Herdr: submitted to " .. target.label(agent), vim.log.levels.INFO)
-    return true
-  end
-
   local pane = agent.pane_id
   if not pane or pane == "" then
     vim.notify("Herdr: agent has no pane id", vim.log.levels.ERROR)
     return false
   end
+
+  if agent.agent_status == "working" then
+    vim.notify("Herdr: agent is working; pasting into view anyway", vim.log.levels.WARN)
+  end
+
+  herdr.agent_focus(dest)
   local _, err = herdr.pane_send_text(pane, text)
   if err then
     vim.notify("Herdr: " .. herdr.err_message(err), vim.log.levels.ERROR)
     return false
   end
-  vim.notify("Herdr: pasted into " .. pane, vim.log.levels.INFO)
+  vim.notify("Herdr: focused " .. target.display_name(agent) .. " (not submitted)", vim.log.levels.INFO)
   return true
 end
 
