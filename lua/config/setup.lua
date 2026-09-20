@@ -675,7 +675,7 @@ local toggle_left_menu = function()
 		if api.tree.is_visible() then
 			api.tree.close()
 		else
-			api.tree.open()
+			api.tree.toggle({ focus = false })
 		end
 	elseif left_menu_mode == 'db' then
 		vim.cmd("DBUIToggle")
