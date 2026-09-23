@@ -3,6 +3,7 @@ local M = {}
 M.subcommands = {
   "agents",
   "file",
+  "focus",
   "health",
   "line",
   "list",
@@ -66,6 +67,8 @@ function M.dispatch(herd, opts)
     herd.agents()
   elseif sub == "target" then
     herd.pick_target()
+  elseif sub == "focus" then
+    herd.focus()
   elseif sub == "file" then
     herd.send_file_ref()
   elseif sub == "line" then

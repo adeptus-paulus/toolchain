@@ -476,7 +476,7 @@ vim.keymap.set("n", "cvn", function() vim.diagnostic.jump({ count = 1, float = t
 vim.keymap.set("n", "cvp", function() vim.diagnostic.jump({ count = -1, float = true }) end, opts)
 
 pcall(function() require("telescope").load_extension("ui-select") end)
-require("telescope").load_extension("recent_files")
+-- require("telescope").load_extension("recent_files")
 local crates = require('crates')
 
 local builtin = require('telescope.builtin')
@@ -936,54 +936,8 @@ require('lualine').setup {
 
 -- vim.keymap.set({ "n", "t" }, "cva", function() require("grok-code").toggle() end, { desc = "Toggle Grok Build (grok)" })
 
-local last_non_terminal_win = nil
-
--- vim.keymap.set({ "n", "t" }, "<M-F12>", function()
-vim.keymap.set({ "n", "t" }, "cvs", function()
-	local current_win = vim.api.nvim_get_current_win()
-	local current_buf = vim.api.nvim_win_get_buf(current_win)
-	local current_buftype = vim.api.nvim_buf_get_option(current_buf, "buftype")
-
-	-- If currently in terminal, go back to previous window
-	if current_buftype == "terminal" then
-		if last_non_terminal_win and vim.api.nvim_win_is_valid(last_non_terminal_win) then
-			vim.api.nvim_set_current_win(last_non_terminal_win)
-		else
-			-- If no valid previous window, find any non-terminal window
-			local windows = vim.api.nvim_list_wins()
-			for _, win in ipairs(windows) do
-				if win ~= current_win then
-					local buf = vim.api.nvim_win_get_buf(win)
-					local buftype = vim.api.nvim_buf_get_option(buf, "buftype")
-					if buftype ~= "terminal" then
-						vim.api.nvim_set_current_win(win)
-						return
-					end
-				end
-			end
-		end
-	else
-		-- Currently not in terminal, save position and switch to terminal
-		last_non_terminal_win = current_win
-
-		-- Find first terminal window
-		local windows = vim.api.nvim_list_wins()
-		for _, win in ipairs(windows) do
-			local buf = vim.api.nvim_win_get_buf(win)
-			local buftype = vim.api.nvim_buf_get_option(buf, "buftype")
-
-			if buftype == "terminal" then
-				vim.api.nvim_set_current_win(win)
-				-- Enter insert mode in terminal
-				vim.cmd("startinsert")
-				return
-			end
-		end
-
-		-- No terminal found
-		print("No terminal window found")
-	end
-end, { noremap = true, silent = true })
+vim.keymap.set({ "n", "t" }, "cvs", function() require("herdr").focus() end,
+	{ noremap = true, silent = true, desc = "Herdr: go to agent pane" })
 require('gitsigns').setup {
 	on_attach = function(bufnr)
 		local gitsigns = require('gitsigns')

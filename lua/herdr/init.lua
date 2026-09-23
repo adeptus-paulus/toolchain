@@ -296,6 +296,41 @@ function M.pick_target()
   target.pick(function() end)
 end
 
+--- @param agent table
+local function focus_agent(agent)
+  local _, err = herdr.agent_focus(target.cli_target(agent))
+  if err then
+    vim.notify("Herdr: " .. herdr.err_message(err), vim.log.levels.ERROR)
+    return
+  end
+  target.remember(agent)
+end
+
+--- Jump to an agent's Herdr pane. One live agent → go there; several → pick one.
+function M.focus()
+  local agents, err = herdr.agent_list()
+  if err then
+    vim.notify("Herdr: " .. herdr.err_message(err), vim.log.levels.ERROR)
+    return
+  end
+  if #agents == 0 then
+    vim.notify("Herdr: no agents. Start one with your herd-roles script.", vim.log.levels.WARN)
+    return
+  end
+  if #agents == 1 then
+    focus_agent(agents[1])
+    return
+  end
+  vim.ui.select(target.sort(agents), {
+    prompt = "Go to agent:",
+    format_item = target.label,
+  }, function(choice)
+    if choice then
+      focus_agent(choice)
+    end
+  end)
+end
+
 function M._dispatch(opts)
   commands.dispatch(M, opts)
 end
