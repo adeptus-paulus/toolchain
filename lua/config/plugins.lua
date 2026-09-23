@@ -60,9 +60,9 @@ local plugins = {
   'https://github.com/HiPhish/rainbow-delimiters.nvim',
 
   -- Telescope + extensions
-  { src = 'https://github.com/nvim-telescope/telescope.nvim', version = 'main' },
+  { src = 'https://github.com/nvim-telescope/telescope.nvim', version = 'master' },
   'https://github.com/nvim-telescope/telescope-ui-select.nvim',
-  'https://github.com/smartpde/telescope-recent-files',
+  -- 'https://github.com/smartpde/telescope-recent-files',
 
   -- LSP + completion + snippets
   'https://github.com/neovim/nvim-lspconfig',
